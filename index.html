@@ -922,10 +922,13 @@ async function doTranslate() {
 
 function speakKorean() {
   if(!korText) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(korText);
-  u.lang='ko-KR'; u.rate=0.85;
-  speechSynthesis.speak(u);
+  // 用 Google TTS，iPhone Safari 完全支援
+  const encoded = encodeURIComponent(korText);
+  const audio = new Audio(`https://translate.googleapis.com/translate_tts?ie=UTF-8&q=${encoded}&tl=ko&client=gtx`);
+  audio.play().catch(()=>{
+    // 如果自動播放被擋，用連結開啟
+    window.open(`https://translate.googleapis.com/translate_tts?ie=UTF-8&q=${encoded}&tl=ko&client=gtx`);
+  });
 }
 
 function quickPhrase(t) {
