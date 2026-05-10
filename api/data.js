@@ -7,12 +7,10 @@ export default async function handler(req, res) {
 
   const { action, type, day } = req.query;
 
-  // ---- 翻譯功能 ----
   if (action === 'translate') {
     if (req.method !== 'POST') return res.status(405).end();
     const { text } = req.body;
     if (!text) return res.status(400).json({ error: 'Missing text' });
-
     try {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -24,10 +22,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 500,
-          messages: [{
-            role: 'user',
-            content: `請將以下中文翻譯成韓文。只回覆韓文翻譯結果，不要任何說明：\n${text}`
-          }]
+          messages: [{ role: 'user', content: `請將以下中文翻譯成韓文。只回覆韓文翻譯結果，不要任何說明：\n${text}` }]
         })
       });
       const data = await r.json();
@@ -38,7 +33,6 @@ export default async function handler(req, res) {
     }
   }
 
-  // ---- 資料庫功能 ----
   const KV_URL = process.env.KV_REST_API_URL;
   const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 
