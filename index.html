@@ -906,13 +906,13 @@ async function doTranslate() {
   btn.disabled = true;
   btn.innerHTML = '<span class="dots"><span></span><span></span><span></span></span>';
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
-        messages:[{role:'user',content:`請將以下中文翻譯成韓文。只回覆韓文翻譯結果，不要任何說明：\n${text}`}]})
+    const res = await fetch(`${API}/api/data?action=translate`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ text })
     });
     const data = await res.json();
-    korText = data.content?.[0]?.text?.trim()||'';
+    korText = data.result || '';
     document.getElementById('tr-text').textContent = korText;
     document.getElementById('tr-result').classList.add('show');
   } catch(e) { alert('翻譯失敗，請稍後再試'); }
