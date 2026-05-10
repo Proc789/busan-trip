@@ -393,7 +393,7 @@ html,body { height:100%; background:var(--bg); font-family:'Noto Sans TC',sans-s
       <div class="tr-result" id="tr-result">
         <div class="tr-result-label">韓文翻譯</div>
         <div class="tr-result-text" id="tr-text"></div>
-        <button class="tr-speak-btn" onclick="speakKorean()">🔊 開啟 Google 翻譯播放</button>
+        <a class="tr-speak-btn" id="speak-link" href="#" target="_blank" style="text-decoration:none;display:inline-flex;">🔊 點我用 Google 翻譯播放</a>
       </div>
     </div>
     <div class="phrases-card">
@@ -915,6 +915,9 @@ async function doTranslate() {
     korText = data.result || '';
     document.getElementById('tr-text').textContent = korText;
     document.getElementById('tr-result').classList.add('show');
+    // 更新播放連結
+    const encoded = encodeURIComponent(korText);
+    document.getElementById('speak-link').href = `https://translate.google.com/?sl=ko&tl=zh-TW&text=${encoded}&op=translate`;
   } catch(e) { alert('翻譯失敗，請稍後再試'); }
   btn.disabled = false;
   btn.textContent = '翻譯 번역하기';
