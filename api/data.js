@@ -7,32 +7,23 @@ export default async function handler(req, res) {
 
   const { action, type, day } = req.query;
 
+  // ---- 翻譯功能（免費 MyMemory API）----
   if (action === 'translate') {
     if (req.method !== 'POST') return res.status(405).end();
     const { text } = req.body;
     if (!text) return res.status(400).json({ error: 'Missing text' });
     try {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 500,
-          messages: [{ role: 'user', content: `請將以下中文翻譯成韓文。只回覆韓文翻譯結果，不要任何說明：\n${text}` }]
-        })
-      });
+      const encoded = encodeURIComponent(text);
+      const r = await fetch(`https://api.mymemory.translated.net/get?q=${encoded}&langpair=zh-TW|ko`);
       const data = await r.json();
-      const result = data.content?.[0]?.text?.trim() || '';
+      const result = data.responseData?.translatedText || '';
       return res.status(200).json({ result });
     } catch (e) {
       return res.status(500).json({ error: '翻譯失敗' });
     }
   }
 
+  // ---- 資料庫功能 ----
   const KV_URL = process.env.KV_REST_API_URL;
   const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 
