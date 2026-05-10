@@ -393,7 +393,7 @@ html,body { height:100%; background:var(--bg); font-family:'Noto Sans TC',sans-s
       <div class="tr-result" id="tr-result">
         <div class="tr-result-label">韓文翻譯</div>
         <div class="tr-result-text" id="tr-text"></div>
-        <button class="tr-speak-btn" onclick="speakKorean()">🔊 播放韓文　給店家聽</button>
+        <button class="tr-speak-btn" onclick="speakKorean()">🔊 開啟 Google 翻譯播放</button>
       </div>
     </div>
     <div class="phrases-card">
@@ -922,13 +922,9 @@ async function doTranslate() {
 
 function speakKorean() {
   if(!korText) return;
-  // 用 Google TTS，iPhone Safari 完全支援
   const encoded = encodeURIComponent(korText);
-  const audio = new Audio(`https://translate.googleapis.com/translate_tts?ie=UTF-8&q=${encoded}&tl=ko&client=gtx`);
-  audio.play().catch(()=>{
-    // 如果自動播放被擋，用連結開啟
-    window.open(`https://translate.googleapis.com/translate_tts?ie=UTF-8&q=${encoded}&tl=ko&client=gtx`);
-  });
+  // 開啟 Google 翻譯，直接顯示韓文並可播放
+  window.open(`https://translate.google.com/?sl=ko&tl=zh-TW&text=${encoded}&op=translate`, '_blank');
 }
 
 function quickPhrase(t) {
