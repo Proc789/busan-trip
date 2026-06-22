@@ -891,10 +891,11 @@ function switchPage(name) {
 
 function calcTWD() {
   const v = parseFloat(document.getElementById('twd-in').value)||0;
-  document.getElementById('krw-in').value = v ? Math.round(v*RATE).toLocaleString() : '';
+  // number input 不接受帶逗號的值，會造成換算結果被清空。
+  document.getElementById('krw-in').value = v ? Math.round(v*RATE) : '';
 }
 function calcKRW() {
-  const v = parseFloat(String(document.getElementById('krw-in').value).replace(/,/g,''))||0;
+  const v = parseFloat(document.getElementById('krw-in').value)||0;
   document.getElementById('twd-in').value = v ? (v/RATE).toFixed(0) : '';
 }
 function setTWD(v) { document.getElementById('twd-in').value=v; calcTWD(); }
@@ -904,23 +905,32 @@ async function doTranslate() {
   if(!text) return;
   const btn = document.getElementById('tr-btn');
   btn.disabled = true;
-  btn.innerHTML = '<span class="dots"><span></span><span></span><span></span></span>';
+  btn.textContent = '翻譯中，請稍候…';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
   try {
     const res = await fetch(`${API}/api/data?action=translate`, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ text })
+      body: JSON.stringify({ text }),
+      signal: controller.signal
     });
+    if (!res.ok) throw new Error(`翻譯服務回應 ${res.status}`);
     const data = await res.json();
     korText = data.result || '';
+    if (!korText) throw new Error('沒有取得翻譯結果');
     document.getElementById('tr-text').textContent = korText;
     document.getElementById('tr-result').classList.add('show');
     // 更新播放連結
     const encoded = encodeURIComponent(korText);
     document.getElementById('speak-link').href = `https://translate.google.com/?sl=ko&tl=zh-TW&text=${encoded}&op=translate`;
-  } catch(e) { alert('翻譯失敗，請稍後再試'); }
-  btn.disabled = false;
-  btn.textContent = '翻譯 번역하기';
+  } catch(e) {
+    alert(e.name === 'AbortError' ? '翻譯逾時，請確認網路後再試。' : '翻譯失敗，請稍後再試。');
+  } finally {
+    clearTimeout(timeout);
+    btn.disabled = false;
+    btn.textContent = '翻譯 번역하기';
+  }
 }
 
 function speakKorean() {
@@ -936,15 +946,15 @@ function quickPhrase(t) {
   doTranslate();
 }
 
+// ---- API ----
+const API = 'https://busan-trip-silk.vercel.app';
+const cache = {}; // { 'spots_0': [...], 'foods_0': [...] }
+
 // Init
 buildScrollers();
 updateProgress();
 renderPreview();
 loadAndRender();
-
-// ---- API ----
-const API = 'https://busan-trip-silk.vercel.app';
-const cache = {}; // { 'spots_0': [...], 'foods_0': [...] }
 
 async function apiFetch(type, day) {
   const key = `${type}_${day}`;
