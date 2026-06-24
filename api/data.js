@@ -43,11 +43,11 @@ export default async function handler(req, res) {
     });
   }
 
-  if (!type || day === undefined) {
+  if (!type || (type !== 'favorites' && day === undefined)) {
     return res.status(400).json({ error: 'Missing type or day' });
   }
 
-  const key = `busan_${type}_day${day}`;
+  const key = type === 'favorites' ? 'busan_favorites' : `busan_${type}_day${day}`;
 
   if (req.method === 'GET') {
     const data = await kvGet(key);

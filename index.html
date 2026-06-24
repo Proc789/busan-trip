@@ -330,8 +330,24 @@ html,body { height:100%; background:var(--bg); font-family:'Noto Sans TC',sans-s
           <div class="feature-card-title">基本資訊</div>
           <div class="feature-card-desc">航班、住宿與提醒</div>
         </div>
+        <div class="feature-card" onclick="switchPage('favorites')">
+          <div class="feature-card-icon">♡</div><div class="feature-card-en">Saved</div><div class="feature-card-title">想去清單</div><div class="feature-card-desc">IG、地圖連結與行程安排</div>
+        </div>
       </div>
     </div>
+  </div>
+
+  <!-- FAVORITES -->
+  <div class="page" id="page-favorites">
+    <div class="info-header"><div class="info-title">想去清單</div><div class="info-sub">貼上 IG 或地圖連結，慢慢累積再排入行程</div></div>
+    <div class="tr-card">
+      <input class="tr-textarea" style="min-height:0;height:48px" id="fav-name" placeholder="店名或景點名稱 *">
+      <select class="modal-select" id="fav-kind" style="margin-bottom:12px"><option value="餐廳">🍽 餐廳</option><option value="景點">📍 景點</option><option value="咖啡">☕ 咖啡</option><option value="購物">🛍 購物</option></select>
+      <input class="tr-textarea" style="min-height:0;height:48px" id="fav-link" placeholder="IG、Reels 或 Google Maps 連結（選填）">
+      <textarea class="tr-textarea" style="min-height:64px" id="fav-note" placeholder="為什麼想去？區域、必吃品項或備註"></textarea>
+      <button class="tr-btn" onclick="saveFavorite()">＋ 收進想去清單</button>
+    </div>
+    <div class="phrases-card"><div class="phrases-title">♡ 已收藏</div><div id="favorites-list" style="display:flex;flex-direction:column;gap:10px"><div style="font-size:12px;color:var(--ink3)">載入收藏中…</div></div></div>
   </div>
 
   <!-- ITINERARY -->
@@ -593,6 +609,7 @@ html,body { height:100%; background:var(--bg); font-family:'Noto Sans TC',sans-s
     <div class="nav-item" id="nav-exchange" onclick="switchPage('exchange')"><span class="nav-icon">💱</span><span class="nav-label">匯率</span></div>
     <div class="nav-item" id="nav-translate" onclick="switchPage('translate')"><span class="nav-icon">🗣</span><span class="nav-label">翻譯</span></div>
     <div class="nav-item" id="nav-info" onclick="switchPage('info')"><span class="nav-icon">✈️</span><span class="nav-label">資訊</span></div>
+    <div class="nav-item" id="nav-favorites" onclick="switchPage('favorites');loadFavorites()"><span class="nav-icon">♡</span><span class="nav-label">收藏</span></div>
   </nav>
 </div>
 
@@ -994,7 +1011,8 @@ async function apiFetch(type, day) {
   const key = `${type}_${day}`;
   if(cache[key]) return cache[key];
   try {
-    const r = await fetch(`${API}/api/data?type=${type}&day=${day}`);
+    const query = day === undefined ? `type=${type}` : `type=${type}&day=${day}`;
+    const r = await fetch(`${API}/api/data?${query}`);
     const data = await r.json();
     cache[key] = Array.isArray(data) ? data : [];
     return cache[key];
@@ -1004,7 +1022,8 @@ async function apiFetch(type, day) {
 async function apiPost(type, day, item) {
   const key = `${type}_${day}`;
   try {
-    const r = await fetch(`${API}/api/data?type=${type}&day=${day}`, {
+    const query = day === undefined ? `type=${type}` : `type=${type}&day=${day}`;
+    const r = await fetch(`${API}/api/data?${query}`, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify(item)
@@ -1018,7 +1037,8 @@ async function apiPost(type, day, item) {
 async function apiDelete(type, day, id) {
   const key = `${type}_${day}`;
   try {
-    const r = await fetch(`${API}/api/data?type=${type}&day=${day}&id=${id}`, {
+    const query = day === undefined ? `type=${type}&id=${id}` : `type=${type}&day=${day}&id=${id}`;
+    const r = await fetch(`${API}/api/data?${query}`, {
       method: 'DELETE'
     });
     const data = await r.json();
@@ -1038,6 +1058,27 @@ async function loadAndRender() {
 
 async function getCustomSpots(dayIdx) { return await apiFetch('spots', dayIdx); }
 async function getCustomFoods(dayIdx) { return await apiFetch('foods', dayIdx); }
+
+async function loadFavorites() {
+  const list = document.getElementById('favorites-list');
+  const items = await apiFetch('favorites');
+  if (!items.length) { list.innerHTML = '<div style="font-size:12px;color:var(--ink3)">還沒有收藏。先貼一個 IG 或地圖連結吧。</div>'; return; }
+  list.innerHTML = items.slice().reverse().map(f => `<div style="background:var(--bg2);border-radius:12px;padding:12px"><div style="display:flex;justify-content:space-between;gap:8px"><strong>${f.kind === '餐廳' ? '🍽' : '📍'} ${f.name}</strong><span class="delete-btn" onclick="deleteFavorite(${f.id})">✕</span></div><div style="font-size:11px;color:var(--accent);margin-top:3px">${f.kind}</div>${f.note ? `<div style="font-size:12px;color:var(--ink2);margin-top:6px">${f.note}</div>` : ''}${f.link ? `<a href="${f.link}" target="_blank" style="display:block;font-size:11px;color:var(--accent);margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">查看來源 ↗</a>` : ''}<div style="display:flex;gap:6px;margin-top:10px"><select id="fav-day-${f.id}" class="modal-select" style="padding:5px;font-size:11px;flex:1">${days.map((d,i)=>`<option value="${i}">加入 Day ${i+1} · ${d.title}</option>`).join('')}</select><button class="tl-btn" onclick="addFavoriteToDay(${f.id})">加入行程</button></div></div>`).join('');
+}
+async function saveFavorite() {
+  const name = document.getElementById('fav-name').value.trim();
+  if (!name) { document.getElementById('fav-name').focus(); return; }
+  await apiPost('favorites', undefined, { name, kind:document.getElementById('fav-kind').value, link:document.getElementById('fav-link').value.trim(), note:document.getElementById('fav-note').value.trim() });
+  ['fav-name','fav-link','fav-note'].forEach(id=>document.getElementById(id).value='');
+  loadFavorites();
+}
+async function deleteFavorite(id) { await apiDelete('favorites', undefined, id); loadFavorites(); }
+async function addFavoriteToDay(id) {
+  const items = await apiFetch('favorites'); const f = items.find(x=>String(x.id)===String(id)); if (!f) return;
+  const day = Number(document.getElementById(`fav-day-${id}`).value);
+  await apiPost('spots', day, { emoji:f.kind==='餐廳'?'🍽':'📍', name:f.name, desc:f.note, map:f.link, badge:'b-must', badgeLabel:'想去' });
+  alert(`已加入 Day ${day+1} 的行程`);
+}
 
 // ---- MODAL ----
 let selectedSpotEmoji = '🗺️';
