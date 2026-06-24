@@ -36,7 +36,7 @@ export default async function handler(req, res) {
   }
 
   async function kvSet(key, value) {
-    await put(`data/${key}.json`, JSON.stringify(value), { access: 'private', addRandomSuffix: false, contentType: 'application/json', token: BLOB_TOKEN });
+    await put(`data/${key}.json`, JSON.stringify(value), { access: 'private', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json', token: BLOB_TOKEN });
   }
 
   if (!type || (type !== 'favorites' && day === undefined)) {
