@@ -1,3 +1,5 @@
+import { list, put } from '@vercel/blob';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
@@ -24,23 +26,17 @@ export default async function handler(req, res) {
   }
 
   // ---- 資料庫功能 ----
-  const KV_URL = process.env.KV_REST_API_URL;
-  const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+  const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 
   async function kvGet(key) {
-    const r = await fetch(`${KV_URL}/get/${key}`, {
-      headers: { Authorization: `Bearer ${KV_TOKEN}` }
-    });
-    const json = await r.json();
-    return json.result ? JSON.parse(json.result) : [];
+    const { blobs } = await list({ prefix: `data/${key}.json`, token: BLOB_TOKEN });
+    if (!blobs.length) return [];
+    const r = await fetch(blobs[0].url, { headers: { Authorization: `Bearer ${BLOB_TOKEN}` } });
+    return r.ok ? await r.json() : [];
   }
 
   async function kvSet(key, value) {
-    await fetch(`${KV_URL}/set/${key}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(JSON.stringify(value))
-    });
+    await put(`data/${key}.json`, JSON.stringify(value), { access: 'private', addRandomSuffix: false, contentType: 'application/json', token: BLOB_TOKEN });
   }
 
   if (!type || (type !== 'favorites' && day === undefined)) {
@@ -49,10 +45,8 @@ export default async function handler(req, res) {
 
   const key = type === 'favorites' ? 'busan_favorites' : `busan_${type}_day${day}`;
 
-  if (req.method === 'GET') {
-    const data = await kvGet(key);
-    return res.status(200).json(data);
-  }
+  try {
+  if (req.method === 'GET') return res.status(200).json(await kvGet(key));
 
   if (req.method === 'POST') {
     const item = req.body;
@@ -69,6 +63,6 @@ export default async function handler(req, res) {
     await kvSet(key, updated);
     return res.status(200).json(updated);
   }
-
   return res.status(405).json({ error: 'Method not allowed' });
+  } catch (e) { return res.status(500).json({ error: '資料庫暫時無法使用' }); }
 }
