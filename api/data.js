@@ -49,9 +49,10 @@ export default async function handler(req, res) {
   if (req.method === 'GET') return res.status(200).json(await kvGet(key));
 
   if (req.method === 'POST') {
-    const item = req.body;
+    const items = Array.isArray(req.body) ? req.body : [req.body];
     const data = await kvGet(key);
-    data.push({ ...item, id: Date.now() });
+    const now = Date.now();
+    data.push(...items.map((item, index) => ({ ...item, id: item.id || now + index })));
     await kvSet(key, data);
     return res.status(200).json(data);
   }
