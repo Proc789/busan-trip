@@ -32,7 +32,8 @@ export default async function handler(req, res) {
     const { blobs } = await list({ prefix: `data/${key}.json`, token: BLOB_TOKEN });
     if (!blobs.length) return [];
     const latestBlob = blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))[0];
-    const r = await fetch(latestBlob.url, { headers: { Authorization: `Bearer ${BLOB_TOKEN}` } });
+    const freshUrl = `${latestBlob.url}${latestBlob.url.includes('?') ? '&' : '?'}v=${Date.now()}`;
+    const r = await fetch(freshUrl, { cache: 'no-store', headers: { Authorization: `Bearer ${BLOB_TOKEN}` } });
     return r.ok ? await r.json() : [];
   }
 
