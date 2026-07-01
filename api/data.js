@@ -2,7 +2,7 @@ import { list, put } from '@vercel/blob';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -31,7 +31,8 @@ export default async function handler(req, res) {
   async function kvGet(key) {
     const { blobs } = await list({ prefix: `data/${key}.json`, token: BLOB_TOKEN });
     if (!blobs.length) return [];
-    const r = await fetch(blobs[0].url, { headers: { Authorization: `Bearer ${BLOB_TOKEN}` } });
+    const latestBlob = blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))[0];
+    const r = await fetch(latestBlob.url, { headers: { Authorization: `Bearer ${BLOB_TOKEN}` } });
     return r.ok ? await r.json() : [];
   }
 
@@ -53,6 +54,12 @@ export default async function handler(req, res) {
     const data = await kvGet(key);
     const now = Date.now();
     data.push(...items.map((item, index) => ({ ...item, id: item.id || now + index })));
+    await kvSet(key, data);
+    return res.status(200).json(data);
+  }
+
+  if (req.method === 'PUT') {
+    const data = Array.isArray(req.body) ? req.body : [];
     await kvSet(key, data);
     return res.status(200).json(data);
   }
